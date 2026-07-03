@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eyetribe-tools"
+version = "0.1.0"
+description = "Python tools for running Eye Tribe calibration, validation, and gaze overlays."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Nico Biagi" }
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: Microsoft :: Windows",
+]
+
+[project.scripts]
+eyetribe-session = "eyetribe_tools.session:run_eyetribe_session_gui"
