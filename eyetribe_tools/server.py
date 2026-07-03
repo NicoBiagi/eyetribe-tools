@@ -1,9 +1,38 @@
+import os
 import socket
 import subprocess
 import time
 from pathlib import Path
 
-SERVER_EXE = Path(r"C:\Program Files (x86)\EyeTribe\Server\EyeTribe.exe")
+DEFAULT_INSTALL_SERVER_EXE = Path(r"C:\Program Files (x86)\EyeTribe\Server\EyeTribe.exe")
+BUNDLED_SERVER_EXE = Path(__file__).parent / "vendor" / "EyeTribe" / "Server" / "EyeTribe.exe"
+ENV_SERVER_EXE = "EYETRIBE_SERVER_EXE"
+
+
+def find_eyetribe_server(server_exe=None):
+    candidates = []
+
+    if server_exe is not None:
+        candidates.append(Path(server_exe))
+
+    env_path = os.environ.get(ENV_SERVER_EXE)
+    if env_path:
+        candidates.append(Path(env_path))
+
+    candidates.append(BUNDLED_SERVER_EXE)
+    candidates.append(DEFAULT_INSTALL_SERVER_EXE)
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    searched = "\n".join(str(path) for path in candidates)
+    raise FileNotFoundError(
+        "Could not find EyeTribe.exe. Searched:\n"
+        f"{searched}\n\n"
+        "Install Eye Tribe, bundle the server in eyetribe_tools/vendor/EyeTribe/Server, "
+        f"or set the {ENV_SERVER_EXE} environment variable."
+    )
 
 
 def is_port_open(host="127.0.0.1", port=6555, timeout=0.5):
@@ -47,9 +76,9 @@ def start_eyetribe_server(
     hidden=True,
     restart_existing=True,
     wait_timeout_seconds=8,
+    server_exe=None,
 ):
-    if not SERVER_EXE.exists():
-        raise FileNotFoundError(f"Could not find Eye Tribe server at: {SERVER_EXE}")
+    server_path = find_eyetribe_server(server_exe=server_exe)
 
     if restart_existing:
         stop_eyetribe_server()
@@ -59,7 +88,7 @@ def start_eyetribe_server(
         return None
 
     args = [
-        str(SERVER_EXE),
+        str(server_path),
         f"--framerate={framerate}",
         f"--port={port}",
         f"--remote={str(remote)}",
@@ -75,6 +104,7 @@ def start_eyetribe_server(
 
     process = subprocess.Popen(
         args,
+        cwd=str(server_path.parent),
         stdout=subprocess.DEVNULL if hidden else None,
         stderr=subprocess.DEVNULL if hidden else None,
         creationflags=creationflags,
@@ -88,4 +118,5 @@ def start_eyetribe_server(
         )
 
     print(f"Eye Tribe server started at {framerate} Hz on port {port}.")
+    print(f"Using server: {server_path}")
     return process
